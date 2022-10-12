@@ -17,6 +17,8 @@ public class Peer {
     long ip2;
     long port2;
 
+    Random gerador = new Random();
+
     public Peer(long ip, long port, String file, long ip1, long port1, long ip2, long port2){
         this.ip = ip;
         this.port = port;
@@ -38,9 +40,11 @@ public class Peer {
         }
     }
 
-    public void getRandom(){
-        Random gerador = new Random();
-        System.out.println("random: "+ gerador.nextInt(peers.size()));
+    public void getArc(String arc){
+        int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
+        Peer initialPeer = peers.get(position);
+
+        System.out.println("chegamos" + arc);
     }
 
     public void menu(){
@@ -49,7 +53,7 @@ public class Peer {
 
     public static void main(String args[]) throws IOException {
     Scanner entrada = new Scanner(System.in);
-    Peer newPeer;
+    Peer newPeer = null;
 
     int opcao = -1;
 
@@ -89,11 +93,15 @@ public class Peer {
                  newPeer = new Peer(ip, port, file, ip1, port1, ip2, port2);
                 newPeer.add(newPeer);
 
-                //newPeer.getRandom();
                 break;
-            //}
-            //case 2: {
-                //newPeer.getRandom();
+            }
+            case 2: {
+                if(newPeer != null){
+                    System.out.println("Digite o arquivo a ser buscado:");
+                    String searchArc = entrada.nextLine();
+                    newPeer.getArc(searchArc);
+                } else System.out.println("Nenhum Peer inicializado até o momento");
+                break;
             }
             case 0: {
                 System.out.println("Obrigado.");
