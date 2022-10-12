@@ -1,12 +1,13 @@
 package peer;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
 
 import static java.lang.Integer.parseInt;
 
 public class Peer {
-    static ArrayList<Peer> peers = new ArrayList<>();
+    static ArrayList<Peer> peers;
 
     long ip;
     long port;
@@ -24,11 +25,22 @@ public class Peer {
         this.port1 = port1;
         this.ip2 = ip2;
         this.port2 = port2;
+
+        peers = new ArrayList<>();
     }
 
     public void add(Peer newPeer){
         peers.add(newPeer);
-        System.out.println(peers);
+
+        for(int i = 0; i < peers.size(); i++){
+            System.out.println("added ip:" + peers.get(0).ip);
+            System.out.println("added port:" + peers.get(0).port);
+        }
+    }
+
+    public void getRandom(){
+        Random gerador = new Random();
+        System.out.println("random: "+ gerador.nextInt(peers.size()));
     }
 
     public void menu(){
@@ -37,6 +49,7 @@ public class Peer {
 
     public static void main(String args[]) throws IOException {
     Scanner entrada = new Scanner(System.in);
+    Peer newPeer;
 
     int opcao = -1;
 
@@ -73,10 +86,14 @@ public class Peer {
                 System.out.println("Digite a porta de um terceiro Peer a ser conectado:");
                 int port2 = parseInt(entrada.nextLine());
 
-                Peer newPeer = new Peer(ip, port, file, ip1, port1, ip2, port2);
+                 newPeer = new Peer(ip, port, file, ip1, port1, ip2, port2);
                 newPeer.add(newPeer);
 
+                //newPeer.getRandom();
                 break;
+            //}
+            //case 2: {
+                //newPeer.getRandom();
             }
             case 0: {
                 System.out.println("Obrigado.");
