@@ -68,7 +68,7 @@ public class Peer {
         timer.scheduleAtFixedRate(new TimerTask() {
             public void run() {
                 System.out.println(
-                        "Sou peer " + ip + ":"  + port + "com arquivos " + file);
+                        "Sou peer " + ip + ":"  + port + " com arquivos " + file);
             }
         },interval, interval);
     }
@@ -77,20 +77,18 @@ public class Peer {
     Scanner entrada = new Scanner(System.in);
     Peer newPeer = null;
 
-    int opcao = -1;
+    String opcao = "";
 
-    while (opcao != 0) {
-
+    while (!opcao.equals("LEAVE")) {
         System.out.println("Selecione uma das opções abaixo:");
-        System.out.println("1-) Criar novo Peer");
-        System.out.println("2-) Buscar arquivo");
-        System.out.println("0-) Sair do programa");
+        System.out.println("INICIALIZA");
+        System.out.println("SEARCH");
+        System.out.println("LEAVE");
 
-        opcao = parseInt(entrada.nextLine());
+        opcao = entrada.nextLine();
 
         switch (opcao) {
-            case 1: {
-                System.out.println("\n");
+            case "INICIALIZA": {
                 System.out.println("Digite o IP:porta");
                 String address = entrada.nextLine();
 
@@ -108,7 +106,7 @@ public class Peer {
 
                 break;
             }
-            case 2: {
+            case "SEARCH": {
                 if(newPeer != null){
                     System.out.println("Digite o arquivo a ser buscado:");
                     String searchArc = entrada.nextLine();
@@ -116,9 +114,9 @@ public class Peer {
                 } else System.out.println("Nenhum Peer inicializado até o momento");
                 break;
             }
-            case 0: {
+            case "LEAVE": {
                 System.out.println("Obrigado.");
-                System.exit(opcao);
+                System.exit(0);
             }
             default: {
                 System.out.println("Opção " + opcao + " inválida.");
