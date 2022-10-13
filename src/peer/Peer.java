@@ -1,34 +1,44 @@
 package peer;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
+import java.net.*;
+import java.util.*;
 
 import static java.lang.Integer.parseInt;
 
 public class Peer {
     static ArrayList<Peer> peers;
 
-    long ip;
-    long port;
+    String ip;
+    int port;
     String file;
-    long ip1;
-    long port1;
-    long ip2;
-    long port2;
+    String ip1;
+    int port1;
+    String ip2;
+    int port2;
 
     Random gerador = new Random();
 
-    public Peer(long ip, long port, String file, long ip1, long port1, long ip2, long port2){
-        this.ip = ip;
-        this.port = port;
+    public Peer(String address, String file, String address1, String address2) throws Exception {
+        String[] ipPort = address.split(":");
+        this.ip = ipPort[0];
+        this.port = Integer.parseInt(ipPort[1]);
+
         this.file = file;
-        this.ip1 = ip1;
-        this.port1 = port1;
-        this.ip2 = ip2;
-        this.port2 = port2;
+
+        String[] ipPort1 = address1.split(":");
+        this.ip1 = ipPort1[0];
+        this.port1 = Integer.parseInt(ipPort1[1]);
+
+        String[] ipPort2 = address1.split(":");
+        this.ip2 = ipPort2[0];
+        this.port2 = Integer.parseInt(ipPort2[1]);
+
+        DatagramSocket datagramSocket = new DatagramSocket();
+        InetAddress inetAddress = InetAddress.getByName(ip);
+
+        //DatagramPacket datagramPacket = new DatagramPacket();
 
         peers = new ArrayList<>();
+        tempReminder();
     }
 
     public void add(Peer newPeer){
@@ -44,14 +54,26 @@ public class Peer {
         int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
         Peer initialPeer = peers.get(position);
 
-        System.out.println("chegamos" + arc);
+        System.out.println("chegamos " + arc);
     }
 
     public void menu(){
 
     }
 
-    public static void main(String args[]) throws IOException {
+    public void tempReminder(){
+        long interval = 30000;  // intervalo de 30 seg.
+
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            public void run() {
+                System.out.println(
+                        "Sou peer " + ip + ":"  + port + "com arquivos " + file);
+            }
+        },interval, interval);
+    }
+
+    public static void main(String args[]) throws Exception {
     Scanner entrada = new Scanner(System.in);
     Peer newPeer = null;
 
@@ -69,28 +91,19 @@ public class Peer {
         switch (opcao) {
             case 1: {
                 System.out.println("\n");
-                System.out.println("Digite o IP:");
-                int ip = parseInt(entrada.nextLine());
-
-                System.out.println("Digite a porta:");
-                int port = parseInt(entrada.nextLine());
+                System.out.println("Digite o IP:porta");
+                String address = entrada.nextLine();
 
                 System.out.println("Digite os arquivos a serem monitorados:");
                 String file = entrada.nextLine();
 
-                System.out.println("Digite o IP de um segundo Peer a ser conectado:");
-                int ip1 = parseInt(entrada.nextLine());
+                System.out.println("Digite o IP:porta de um segundo Peer a ser conectado:");
+                String address1 = entrada.nextLine();
 
-                System.out.println("Digite a porta de um segundo Peer a ser conectado:");
-                int port1 = parseInt(entrada.nextLine());
+                System.out.println("Digite o IP:porta de um terceiro Peer a ser conectado:");
+                String address2 = entrada.nextLine();
 
-                System.out.println("Digite o IP de um terceiro Peer a ser conectado:");
-                int ip2 = parseInt(entrada.nextLine());
-
-                System.out.println("Digite a porta de um terceiro Peer a ser conectado:");
-                int port2 = parseInt(entrada.nextLine());
-
-                 newPeer = new Peer(ip, port, file, ip1, port1, ip2, port2);
+                newPeer = new Peer(address, file, address1, address2);
                 newPeer.add(newPeer);
 
                 break;
