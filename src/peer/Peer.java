@@ -55,7 +55,7 @@ public class Peer {
 
     public void getArc(String arc){
         for(int i = 0; i < peers.size(); i++){
-            if(peers.get(i).equals(arc)){
+            if(peers.get(i).file.equals(arc)){
                 System.out.println("requisição já processada para "+ arc);
                 return;
             }
