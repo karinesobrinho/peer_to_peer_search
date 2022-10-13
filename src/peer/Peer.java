@@ -7,6 +7,8 @@ import static java.lang.Integer.parseInt;
 public class Peer {
     static ArrayList<Peer> peers;
 
+    static ArrayList<String> pastSearches;
+
     String ip;
     int port;
     String file;
@@ -38,6 +40,7 @@ public class Peer {
         //DatagramPacket datagramPacket = new DatagramPacket();
 
         peers = new ArrayList<>();
+        pastSearches = new ArrayList<>();
         tempReminder();
     }
 
@@ -51,14 +54,19 @@ public class Peer {
     }
 
     public void getArc(String arc){
+        for(int i = 0; i < peers.size(); i++){
+            if(peers.get(i).equals(arc)){
+                System.out.println("requisição já processada para "+ arc);
+                return;
+            }
+        }
+
+        pastSearches.add(arc);
+
         int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
         Peer initialPeer = peers.get(position);
 
         System.out.println("chegamos " + arc);
-    }
-
-    public void menu(){
-
     }
 
     public void tempReminder(){
@@ -83,7 +91,6 @@ public class Peer {
         System.out.println("Selecione uma das opções abaixo:");
         System.out.println("INICIALIZA");
         System.out.println("SEARCH");
-        System.out.println("LEAVE");
 
         opcao = entrada.nextLine();
 
@@ -123,10 +130,7 @@ public class Peer {
                 break;
             }
         }
-
-
-}
+    }
     entrada.close();
-        }
-
+    }
 }
