@@ -1,8 +1,9 @@
 package peer;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.util.*;
-
-import static java.lang.Integer.parseInt;
 
 public class Peer {
     static ArrayList<Peer> peers;
@@ -19,7 +20,7 @@ public class Peer {
 
     Random gerador = new Random();
 
-    public Peer(String address, String file, String address1, String address2) throws Exception {
+    public Peer(String address, String file, String address1, String address2) {
         String[] ipPort = address.split(":");
         this.ip = ipPort[0];
         this.port = Integer.parseInt(ipPort[1]);
@@ -30,17 +31,19 @@ public class Peer {
         this.ip1 = ipPort1[0];
         this.port1 = Integer.parseInt(ipPort1[1]);
 
-        String[] ipPort2 = address1.split(":");
+        String[] ipPort2 = address2.split(":");
         this.ip2 = ipPort2[0];
         this.port2 = Integer.parseInt(ipPort2[1]);
 
-        DatagramSocket datagramSocket = new DatagramSocket();
-        InetAddress inetAddress = InetAddress.getByName(ip);
-
-        //DatagramPacket datagramPacket = new DatagramPacket();
+        try {
+                startPeer(port);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         peers = new ArrayList<>();
         pastSearches = new ArrayList<>();
+
         tempReminder();
     }
 
@@ -70,15 +73,105 @@ public class Peer {
     }
 
     public void tempReminder(){
+        new Thread(() -> {
         long interval = 30000;  // intervalo de 30 seg.
 
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            public void run() {
-                System.out.println(
-                        "Sou peer " + ip + ":"  + port + " com arquivos " + file);
+        timer.scheduleAtFixedRate(
+                new TimerTask() {
+                public void run () {
+                    System.out.println(
+                            "Sou peer " + ip + ":" + port + " com arquivos " + file);
+                }
+            },interval,interval);
+        }).start();
+    }
+
+    public static void startSender(int port1) throws Exception {
+
+        BufferedReader inFromUser = new BufferedReader(
+                new InputStreamReader(System.in));
+
+        DatagramSocket clientSocket = new DatagramSocket();
+
+        String servidor = "localhost";
+        //int porta = 9876;
+
+        InetAddress IPAddress = InetAddress.getByName(servidor);
+
+        byte[] sendData = new byte[1024];
+        byte[] receiveData = new byte[1024];
+
+        System.out.println("Digite o texto a ser enviado ao servidor: ");
+        String sentence = inFromUser.readLine();
+        sendData = sentence.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData,
+                sendData.length, IPAddress, port1);
+
+        System.out
+                .println("Enviando pacote UDP para " + servidor + ":" + port1);
+        clientSocket.send(sendPacket);
+
+        DatagramPacket receivePacket = new DatagramPacket(receiveData,
+                receiveData.length);
+
+        clientSocket.receive(receivePacket);
+        System.out.println("Pacote UDP recebido...");
+
+        String modifiedSentence = new String(receivePacket.getData());
+
+        System.out.println("Texto recebido do servidor:" + modifiedSentence);
+        clientSocket.close();
+        System.out.println("Socket cliente fechado!");
+    }
+
+    public static void startPeer(int porta) throws Exception {
+
+        DatagramSocket serverSocket = null;
+        try {
+            serverSocket = new DatagramSocket(porta);
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] receiveData = new byte[1024];
+        byte[] sendData = new byte[1024];
+
+        while (true) {
+            DatagramPacket receivePacket = new DatagramPacket(receiveData,
+                    receiveData.length);
+            System.out.println("Esperando por datagrama UDP na porta " + porta);
+            try {
+                serverSocket.receive(receivePacket);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        },interval, interval);
+            System.out.print("Datagrama UDP [" + "nun" + "] recebido...");
+
+            String sentence = new String(receivePacket.getData());
+            System.out.println(sentence);
+
+            InetAddress IPAddress = receivePacket.getAddress();
+
+            int port = receivePacket.getPort();
+
+            String capitalizedSentence = sentence.toUpperCase();
+
+            sendData = capitalizedSentence.getBytes();
+
+            DatagramPacket sendPacket = new DatagramPacket(sendData,
+                    sendData.length, IPAddress, port);
+
+            System.out.print("Enviando " + capitalizedSentence + "...");
+
+            try {
+                serverSocket.send(sendPacket);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("OK\n");
+
+        }
     }
 
     public static void main(String args[]) throws Exception {
@@ -114,11 +207,19 @@ public class Peer {
                 break;
             }
             case "SEARCH": {
-                if(newPeer != null){
+                /*if(newPeer != null){
                     System.out.println("Digite o arquivo a ser buscado:");
                     String searchArc = entrada.nextLine();
                     newPeer.getArc(searchArc);
-                } else System.out.println("Nenhum Peer inicializado até o momento");
+                } else System.out.println("Nenhum Peer inicializado até o momento");*/
+
+                try {
+                    System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
+                    String portSender = entrada.nextLine();
+                    startSender(Integer.parseInt(portSender));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             }
             case "LEAVE": {
