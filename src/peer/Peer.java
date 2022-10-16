@@ -35,16 +35,15 @@ public class Peer {
         this.ip2 = ipPort2[0];
         this.port2 = Integer.parseInt(ipPort2[1]);
 
-        try {
-                startPeer(port);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        tempReminder();
         peers = new ArrayList<>();
         pastSearches = new ArrayList<>();
 
-        tempReminder();
+        try {
+            startPeer(port);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void add(Peer newPeer){
