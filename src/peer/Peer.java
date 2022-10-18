@@ -1,9 +1,11 @@
 package peer;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Peer {
     static ArrayList<Peer> peers;
@@ -39,6 +41,7 @@ public class Peer {
         peers = new ArrayList<>();
         pastSearches = new ArrayList<>();
 
+        //fileReader();
         try {
             startPeer(port);
         } catch (Exception e) {
@@ -72,18 +75,44 @@ public class Peer {
     }
 
     public void tempReminder(){
+        Map<String, List<String>> files =  fileReader("/");
+        System.out.println(files);
+
         new Thread(() -> {
         long interval = 30000;  // intervalo de 30 seg.
-
         Timer timer = new Timer();
+
         timer.scheduleAtFixedRate(
                 new TimerTask() {
                 public void run () {
-                    System.out.println(
-                            "Sou peer " + ip + ":" + port + " com arquivos " + file);
+                    Map<String, List<String>> newFiles =  fileReader("/");
+                    System.out.println(newFiles);
+                    //if(files == newFiles) {
+                        System.out.println(
+                                "Sou peer " + ip + ":" + port + " com arquivos " + newFiles);
+                    //}
                 }
             },interval,interval);
         }).start();
+    }
+
+    public Map<String, List<String>> fileReader(String paths){
+        try {
+            Path projectPath = Paths.get(paths);
+            Set<Path> directoriesToList = Files.list(projectPath).map(Path::getFileName).collect(Collectors.toSet());
+            Map<String, List<String>> fileList = Files.walk(projectPath).filter(p -> {
+                        try {
+                            return directoriesToList.contains(p.getParent().getFileName());
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    }).collect(Collectors.groupingBy(p -> p.getParent().getFileName().toString()))
+                    .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, file -> file.getValue().stream().map(Path::getFileName).map(Path::toString).collect(Collectors.toList())));
+
+            return fileList;
+        }catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void startSender(int port1) throws Exception {
@@ -124,12 +153,15 @@ public class Peer {
         System.out.println("Socket cliente fechado!");
     }
 
+
     public static void startPeer(int porta) throws Exception {
 
         DatagramSocket serverSocket = null;
         try {
             serverSocket = new DatagramSocket(porta);
+
         } catch (SocketException e) {
+            System.out.println("erro");
             throw new RuntimeException(e);
         }
 
@@ -174,63 +206,67 @@ public class Peer {
     }
 
     public static void main(String args[]) throws Exception {
-    Scanner entrada = new Scanner(System.in);
-    Peer newPeer = null;
+        (new Thread() {
+            public void run() {
+                Scanner entrada = new Scanner(System.in);
+                Peer newPeer = null;
 
-    String opcao = "";
+                String opcao = "";
 
-    while (!opcao.equals("LEAVE")) {
-        System.out.println("Selecione uma das opções abaixo:");
-        System.out.println("INICIALIZA");
-        System.out.println("SEARCH");
+                while (!opcao.equals("LEAVE")) {
+                    System.out.println("Selecione uma das opções abaixo:");
+                    System.out.println("INICIALIZA");
+                    System.out.println("SEARCH");
 
-        opcao = entrada.nextLine();
+                    opcao = entrada.nextLine();
 
-        switch (opcao) {
-            case "INICIALIZA": {
-                System.out.println("Digite o IP:porta");
-                String address = entrada.nextLine();
+                    switch (opcao) {
+                        case "INICIALIZA": {
+                            System.out.println("Digite o IP:porta");
+                            String address = entrada.nextLine();
 
-                System.out.println("Digite os arquivos a serem monitorados:");
-                String file = entrada.nextLine();
+                            System.out.println("Digite os arquivos a serem monitorados:");
+                            String file = entrada.nextLine();
 
-                System.out.println("Digite o IP:porta de um segundo Peer a ser conectado:");
-                String address1 = entrada.nextLine();
+                            System.out.println("Digite o IP:porta de um segundo Peer a ser conectado:");
+                            String address1 = entrada.nextLine();
 
-                System.out.println("Digite o IP:porta de um terceiro Peer a ser conectado:");
-                String address2 = entrada.nextLine();
+                            System.out.println("Digite o IP:porta de um terceiro Peer a ser conectado:");
+                            String address2 = entrada.nextLine();
 
-                newPeer = new Peer(address, file, address1, address2);
-                newPeer.add(newPeer);
+                            newPeer = new Peer(address, file, address1, address2);
+                            newPeer.add(newPeer);
 
-                break;
-            }
-            case "SEARCH": {
+                            break;
+                        }
+                        case "SEARCH": {
                 /*if(newPeer != null){
                     System.out.println("Digite o arquivo a ser buscado:");
                     String searchArc = entrada.nextLine();
                     newPeer.getArc(searchArc);
                 } else System.out.println("Nenhum Peer inicializado até o momento");*/
 
-                try {
-                    System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
-                    String portSender = entrada.nextLine();
-                    startSender(Integer.parseInt(portSender));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                            try {
+                                System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
+                                String portSender = entrada.nextLine();
+                                startSender(Integer.parseInt(portSender));
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            break;
+                        }
+                        case "LEAVE": {
+                            System.out.println("Obrigado.");
+                            System.exit(0);
+                        }
+                        default: {
+                            System.out.println("Opção " + opcao + " inválida.");
+                            break;
+                        }
+                    }
                 }
-                break;
+                entrada.close();
             }
-            case "LEAVE": {
-                System.out.println("Obrigado.");
-                System.exit(0);
-            }
-            default: {
-                System.out.println("Opção " + opcao + " inválida.");
-                break;
-            }
-        }
-    }
-    entrada.close();
+        }).start();
     }
 }
