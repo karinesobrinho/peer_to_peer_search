@@ -1,4 +1,5 @@
 package peer;
+
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
@@ -41,26 +42,29 @@ public class Peer {
         peers = new ArrayList<>();
         pastSearches = new ArrayList<>();
 
-        try {
-            startPeer(port);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
+        new Thread(() -> {
+            try {
+                startPeer(port);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
     }
 
-    public void add(Peer newPeer){
+    public void add(Peer newPeer) {
         peers.add(newPeer);
 
-        for(int i = 0; i < peers.size(); i++){
+        for (int i = 0; i < peers.size(); i++) {
             System.out.println("added ip:" + peers.get(0).ip);
             System.out.println("added port:" + peers.get(0).port);
         }
     }
 
-    public void getArc(String arc){
-        for(int i = 0; i < peers.size(); i++){
-            if(peers.get(i).file.equals(arc)){
-                System.out.println("requisição já processada para "+ arc);
+    public void getArc(String arc) {
+        for (int i = 0; i < peers.size(); i++) {
+            if (peers.get(i).file.equals(arc)) {
+                System.out.println("requisição já processada para " + arc);
                 return;
             }
         }
@@ -73,22 +77,22 @@ public class Peer {
         System.out.println("chegamos " + arc);
     }
 
-    public void tempReminder(){
+    public void tempReminder() {
         new Thread(() -> {
-        long interval = 30000;  // intervalo de 30 seg.
-        Timer timer = new Timer();
+            long interval = 30000;  // intervalo de 30 seg.
+            Timer timer = new Timer();
 
-        timer.scheduleAtFixedRate(
-                new TimerTask() {
-                public void run () {
-                    Map<String, List<String>> newFiles =  fileReader();
-                    System.out.println("Sou peer " + ip + ":" + port + " com arquivos " + newFiles);
-                }
-            },interval,interval);
+            timer.scheduleAtFixedRate(
+                    new TimerTask() {
+                        public void run() {
+                            Map<String, List<String>> newFiles = fileReader();
+                            System.out.println("Sou peer " + ip + ":" + port + " com arquivos " + newFiles);
+                        }
+                    }, interval, interval);
         }).start();
     }
 
-    public Map<String, List<String>> fileReader(){
+    public Map<String, List<String>> fileReader() {
         try {
             Path projectPath = Paths.get(this.file);
             Set<Path> directoriesToList = Files.list(projectPath).map(Path::getFileName).collect(Collectors.toSet());
@@ -102,7 +106,7 @@ public class Peer {
                     .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, file -> file.getValue().stream().map(Path::getFileName).map(Path::toString).collect(Collectors.toList())));
 
             return fileList;
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -151,7 +155,34 @@ public class Peer {
         DatagramSocket serverSocket = null;
         try {
             serverSocket = new DatagramSocket(porta);
+/*
+            File file = new File("/Users/karinedasilvasobrinho/Documents/sistemas_distribuidos/peer_to_peer_search/sockets.txt"); //initialize File object and passing path as argument
+            boolean result;
+            try {
+                File tempFile
+                        = File.createTempFile("Hello", ".tmp");
+                System.out.println(
+                        "Temporary file is located on Default location"
+                                + tempFile.getAbsolutePath());
 
+                System.out.println(
+                        "Temporary file is located on Specified location: "
+                                + tempFile.getAbsolutePath());
+
+
+            FileWriter fWriter = new FileWriter(
+                    tempFile.getAbsolutePath());
+
+                fWriter.write("text");
+
+                fWriter.close();
+
+                System.out.println(
+                        "File is created successfully with the content.");
+            } catch (IOException e) {
+                e.printStackTrace();    //prints exception if any
+            }
+*/
         } catch (SocketException e) {
             System.out.println("erro");
             throw new RuntimeException(e);
@@ -232,19 +263,21 @@ public class Peer {
                             break;
                         }
                         case "SEARCH": {
-                /*if(newPeer != null){
-                    System.out.println("Digite o arquivo a ser buscado:");
-                    String searchArc = entrada.nextLine();
-                    newPeer.getArc(searchArc);
-                } else System.out.println("Nenhum Peer inicializado até o momento");*/
+                            if (newPeer != null) {
+                                System.out.println("Digite o arquivo a ser buscado:");
+                                String searchArc = entrada.nextLine();
+                                newPeer.getArc(searchArc);
 
-                            try {
-                                System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
-                                String portSender = entrada.nextLine();
-                                startSender(Integer.parseInt(portSender));
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
+
+                                try {
+                                    //System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
+                                    //String portSender = entrada.nextLine();
+                                    startSender(newPeer.port1);
+                                    //startSender(newPeer.port2);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else System.out.println("Nenhum Peer inicializado até o momento");
                             break;
                         }
                         case "LEAVE": {
