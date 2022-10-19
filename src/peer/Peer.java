@@ -41,7 +41,6 @@ public class Peer {
         peers = new ArrayList<>();
         pastSearches = new ArrayList<>();
 
-        //fileReader();
         try {
             startPeer(port);
         } catch (Exception e) {
@@ -75,9 +74,6 @@ public class Peer {
     }
 
     public void tempReminder(){
-        Map<String, List<String>> files =  fileReader("/");
-        System.out.println(files);
-
         new Thread(() -> {
         long interval = 30000;  // intervalo de 30 seg.
         Timer timer = new Timer();
@@ -85,20 +81,16 @@ public class Peer {
         timer.scheduleAtFixedRate(
                 new TimerTask() {
                 public void run () {
-                    Map<String, List<String>> newFiles =  fileReader("/");
-                    System.out.println(newFiles);
-                    //if(files == newFiles) {
-                        System.out.println(
-                                "Sou peer " + ip + ":" + port + " com arquivos " + newFiles);
-                    //}
+                    Map<String, List<String>> newFiles =  fileReader();
+                    System.out.println("Sou peer " + ip + ":" + port + " com arquivos " + newFiles);
                 }
             },interval,interval);
         }).start();
     }
 
-    public Map<String, List<String>> fileReader(String paths){
+    public Map<String, List<String>> fileReader(){
         try {
-            Path projectPath = Paths.get(paths);
+            Path projectPath = Paths.get(this.file);
             Set<Path> directoriesToList = Files.list(projectPath).map(Path::getFileName).collect(Collectors.toSet());
             Map<String, List<String>> fileList = Files.walk(projectPath).filter(p -> {
                         try {
