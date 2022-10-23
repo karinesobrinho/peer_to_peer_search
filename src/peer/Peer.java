@@ -1,5 +1,7 @@
 package peer;
 
+//import org.json.simple.JSONObject;
+
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
@@ -8,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 //import peer.Message;
+//import com.google.gson.Gson;
 
 public class Peer {
     static ArrayList<Peer> peers;
@@ -59,42 +62,63 @@ public class Peer {
         peers.add(newPeer);
     }
 
-    public void getArc(String arc) {
-
+    public boolean pastArchives(String arc) {
         if (pastSearches.contains(arc)) {
             System.out.println("requisição já processada para " + arc);
-            return;
+            return true;
         }
 
         pastSearches.add(arc);
+        return false;
+    }
 
-        if(searchCompare(arc)){
-            System.out.println("Tenho o arquivo");
+    public void getArc(String arc) {
+        if (pastArchives(arc)) return;
+
+        if (searchCompare(arc)) {
+            System.out.println("Tenho o arquivo " + this.ip + this.port);
             return;
         }
         try {
-           // Message  myMessage = new Message(arc, ip, port);
+            //Message  myMessage = new Message(arc, ip, port);
 
             startSender(this.port1, //myMessage.serializedMessage()
-                    this.ip+this.port+arc
+                    this.ip +"!"+ this.port +"!"+ arc
+                    //serializedMessage(arc, ip, port)
             );
-           // startSender(this.port2, arc);
+            // startSender(this.port2, arc);
         } catch (Exception e) {
             System.out.println("falha ao chamar sender");
         }
     }
 
+    /*public String serializedMessage(String arc, String ip, int port) {
+        JSONObject my_obj = new JSONObject();
+
+        //preenche o objeto com os campos: titulo, ano e genero
+        my_obj.put("arc", arc);
+        my_obj.put("ip", ip);
+        my_obj.put("port", port);
+
+        //serializa para uma string e imprime
+        String json_string = my_obj.toString();
+        System.out.println("objeto json -> " + json_string);
+
+        return my_obj.toString();
+    }*/
+
     public boolean searchCompare(String searchFor) {
         Map<String, List<String>> map = this.archives;
+        System.out.println("\n"+ searchFor+ "\n");
         if (map == null) return false;
 
         for (Map.Entry<String, List<String>> pair : map.entrySet()) {
-            if (searchFor.equals(pair.getKey().trim())) {
-                System.out.println("ACHEI " + pair.getKey().trim() + searchFor);
+            if (searchFor.equals(pair.getKey())) {
+                System.out.println("ACHEI " + pair.getKey() + searchFor);
                 return true;
-            }
+            } else {System.out.println(pair.getKey() + searchFor);System.out.println(pair.getKey().compareTo(searchFor));}
             for (int i = 0; i < pair.getValue().size(); i++) {
-                if (searchFor.equals(pair.getValue().get(i).trim())) {
+                if (searchFor.equals(pair.getValue().get(i))) {
                     System.out.println("ACHEI " + pair.getValue().get(i) + searchFor);
                     return true;
                 }
@@ -143,6 +167,7 @@ public class Peer {
     }
 
     public void startSender(int portToSend, String sentence) throws Exception {
+        if (pastArchives(sentence)) return;
         new Thread(() -> {
             try {
                 DatagramSocket clientSocket = new DatagramSocket();
@@ -222,8 +247,14 @@ public class Peer {
 
                 int port = receivePacket.getPort();
 
-                if (searchCompare(sentence.trim())) {
+                String[] s = sentence.split("!");
+
+                DatagramPacket sendPacket;
+
+                if (searchCompare(s[2].trim())) {
                     sendData = ("Arquivo encontrado " + this.ip).getBytes();
+                    sendPacket = new DatagramPacket(sendData,
+                            sendData.length, IPAddress, Integer.parseInt(s[0]));
                 } else {
                     try {
                         startSender(port1, sentence);
@@ -232,10 +263,9 @@ public class Peer {
                         throw new RuntimeException(e);
                     }
                     sendData = ("Arquivo nao encontrado em " + this.ip + ":" + this.port).getBytes();
+                    sendPacket = new DatagramPacket(sendData,
+                            sendData.length, IPAddress, port);
                 }
-
-                DatagramPacket sendPacket = new DatagramPacket(sendData,
-                        sendData.length, IPAddress, port);
 
                 System.out.print("Enviando " + sentence + "...");
 
@@ -290,7 +320,7 @@ public class Peer {
                             if (newPeer != null) {
                                 System.out.println("Digite o arquivo a ser buscado:");
                                 String searchArc = entrada.nextLine();
-                                newPeer.getArc(searchArc);
+                                newPeer.getArc(searchArc.trim());
 
 
                                 /*try {
