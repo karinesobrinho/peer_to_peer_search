@@ -5,10 +5,9 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
+//import peer.Message;
 
 public class Peer {
     static ArrayList<Peer> peers;
@@ -62,22 +61,24 @@ public class Peer {
 
     public void getArc(String arc) {
 
-            if (pastSearches.contains(arc)) {
-                System.out.println("requisição já processada para " + arc);
-                return;
-            }
-
+        if (pastSearches.contains(arc)) {
+            System.out.println("requisição já processada para " + arc);
+            return;
+        }
 
         pastSearches.add(arc);
 
-        //int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
-        //Peer initialPeer = peers.get(position);
-
-        //System.out.println("chegamos " + arc);
-
+        if(searchCompare(arc)){
+            System.out.println("Tenho o arquivo");
+            return;
+        }
         try {
-            startSender(this.port1, arc);
-            //startSender(this.port2, arc);
+           // Message  myMessage = new Message(arc, ip, port);
+
+            startSender(this.port1, //myMessage.serializedMessage()
+                    this.ip+this.port+arc
+            );
+           // startSender(this.port2, arc);
         } catch (Exception e) {
             System.out.println("falha ao chamar sender");
         }
@@ -85,20 +86,21 @@ public class Peer {
 
     public boolean searchCompare(String searchFor) {
         Map<String, List<String>> map = this.archives;
+        if (map == null) return false;
 
         for (Map.Entry<String, List<String>> pair : map.entrySet()) {
-            if(searchFor.equals(pair.getKey().trim())){
+            if (searchFor.equals(pair.getKey().trim())) {
                 System.out.println("ACHEI " + pair.getKey().trim() + searchFor);
                 return true;
             }
-            for(int i = 0; i< pair.getValue().size(); i++){
-                if(searchFor.equals(pair.getValue().get(i).trim())){
+            for (int i = 0; i < pair.getValue().size(); i++) {
+                if (searchFor.equals(pair.getValue().get(i).trim())) {
                     System.out.println("ACHEI " + pair.getValue().get(i) + searchFor);
                     return true;
                 }
             }
         }
-        if(map.containsValue(searchFor) || map.containsKey(searchFor)){
+        if (map.containsValue(searchFor) || map.containsKey(searchFor)) {
             return true;
         }
 
@@ -140,32 +142,34 @@ public class Peer {
         }
     }
 
-    public static void startSender(int portToSend, String sentence) throws Exception {
-        DatagramSocket clientSocket = new DatagramSocket();
+    public void startSender(int portToSend, String sentence) throws Exception {
+        new Thread(() -> {
+            try {
+                DatagramSocket clientSocket = new DatagramSocket();
 
-        String servidor = "localhost";
-        //int porta = 9876;
+                String servidor = "localhost";
+                //int porta = 9876;
 
-        InetAddress IPAddress = InetAddress.getByName(servidor);
+                InetAddress IPAddress = InetAddress.getByName(servidor);
 
-        byte[] sendData = new byte[1024];
-        byte[] receiveData = new byte[1024];
+                byte[] sendData = new byte[1024];
+                byte[] receiveData = new byte[1024];
 
-        sendData = sentence.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(sendData,
-                sendData.length, IPAddress, portToSend);
+                sendData = (sentence).getBytes();
+                DatagramPacket sendPacket = new DatagramPacket(sendData,
+                        sendData.length, IPAddress, portToSend);
 
-        System.out
-                .println("Enviando pacote UDP para " + servidor + ":" + portToSend);
-        clientSocket.send(sendPacket);
+                System.out
+                        .println("Enviando pacote UDP para " + servidor + ":" + portToSend);
+                clientSocket.send(sendPacket);
 
-        DatagramPacket receivePacket = new DatagramPacket(receiveData,
-                receiveData.length);
+                DatagramPacket receivePacket = new DatagramPacket(receiveData,
+                        receiveData.length);
 
-        clientSocket.receive(receivePacket);
-        System.out.println("Pacote UDP recebido...");
+                clientSocket.receive(receivePacket);
+                System.out.println("Pacote UDP recebido...");
 
-        String modifiedSentence = new String(receivePacket.getData());
+                String modifiedSentence = new String(receivePacket.getData());
 
         /*String modifiedSentence = "";
 
@@ -177,65 +181,73 @@ public class Peer {
             System.out.println("Time out has occurred");
         }*/
 
-        System.out.println("Texto recebido do servidor:" + modifiedSentence);
-        clientSocket.close();
-        System.out.println("Socket cliente fechado!");
+                System.out.println("Texto recebido do servidor:" + modifiedSentence);
+                clientSocket.close();
+                System.out.println("Socket cliente fechado!");
+            } catch (Exception e) {
+
+            }
+        }).start();
     }
 
-
     public void startPeer(int porta) throws Exception {
-
-        DatagramSocket serverSocket = null;
-        try {
-            serverSocket = new DatagramSocket(porta);
-
-        } catch (SocketException e) {
-            System.out.println("erro");
-            throw new RuntimeException(e);
-        }
-
-        byte[] receiveData = new byte[1024];
-        byte[] sendData = new byte[1024];
-
-        while (true) {
-            DatagramPacket receivePacket = new DatagramPacket(receiveData,
-                    receiveData.length);
-            System.out.println("Esperando por datagrama UDP na porta " + porta);
+        new Thread(() -> {
+            DatagramSocket serverSocket = null;
             try {
-                serverSocket.receive(receivePacket);
-            } catch (IOException e) {
+                serverSocket = new DatagramSocket(porta);
+
+            } catch (SocketException e) {
+                System.out.println("erro");
                 throw new RuntimeException(e);
             }
-            System.out.print("Datagrama UDP [" + "nun" + "] recebido...");
 
-            String sentence = new String(receivePacket.getData());
-            System.out.println(sentence);
+            byte[] receiveData = new byte[1024];
+            byte[] sendData = new byte[1024];
 
-            InetAddress IPAddress = receivePacket.getAddress();
+            while (true) {
+                DatagramPacket receivePacket = new DatagramPacket(receiveData,
+                        receiveData.length);
+                System.out.println("Esperando por datagrama UDP na porta " + porta);
+                try {
+                    serverSocket.receive(receivePacket);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.print("Datagrama UDP [" + "nun" + "] recebido...");
 
-            int port = receivePacket.getPort();
+                String sentence = new String(receivePacket.getData());
+                System.out.println(sentence);
 
-            boolean var = searchCompare(sentence.trim());
+                InetAddress IPAddress = receivePacket.getAddress();
 
-            if(var){
-                sendData = "arquivo encontrado".getBytes();
-            } else {
-                sendData = "arquivo nao encontrado".getBytes();
+                int port = receivePacket.getPort();
+
+                if (searchCompare(sentence.trim())) {
+                    sendData = ("Arquivo encontrado " + this.ip).getBytes();
+                } else {
+                    try {
+                        startSender(port1, sentence);
+                        startSender(port2, sentence);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    sendData = ("Arquivo nao encontrado em " + this.ip + ":" + this.port).getBytes();
+                }
+
+                DatagramPacket sendPacket = new DatagramPacket(sendData,
+                        sendData.length, IPAddress, port);
+
+                System.out.print("Enviando " + sentence + "...");
+
+                try {
+                    serverSocket.send(sendPacket);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("OK\n");
+
             }
-
-            DatagramPacket sendPacket = new DatagramPacket(sendData,
-                    sendData.length, IPAddress, port);
-
-            System.out.print("Enviando " + sentence + "...");
-
-            try {
-                serverSocket.send(sendPacket);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            System.out.println("OK\n");
-
-        }
+        }).start();
     }
 
     public static void main(String args[]) throws Exception {
