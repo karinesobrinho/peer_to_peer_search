@@ -5,7 +5,9 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class Peer {
@@ -20,6 +22,8 @@ public class Peer {
     int port1;
     String ip2;
     int port2;
+
+    Map<String, List<String>> archives;
 
     Random gerador = new Random();
 
@@ -54,27 +58,51 @@ public class Peer {
 
     public void add(Peer newPeer) {
         peers.add(newPeer);
-
-        for (int i = 0; i < peers.size(); i++) {
-            System.out.println("added ip:" + peers.get(0).ip);
-            System.out.println("added port:" + peers.get(0).port);
-        }
     }
 
     public void getArc(String arc) {
-        for (int i = 0; i < peers.size(); i++) {
-            if (peers.get(i).file.equals(arc)) {
+
+            if (pastSearches.contains(arc)) {
                 System.out.println("requisição já processada para " + arc);
                 return;
             }
-        }
+
 
         pastSearches.add(arc);
 
-        int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
-        Peer initialPeer = peers.get(position);
+        //int position = gerador.nextInt(peers.size()); //gets a random peer to init search with
+        //Peer initialPeer = peers.get(position);
 
-        System.out.println("chegamos " + arc);
+        //System.out.println("chegamos " + arc);
+
+        try {
+            startSender(this.port1, arc);
+            //startSender(this.port2, arc);
+        } catch (Exception e) {
+            System.out.println("falha ao chamar sender");
+        }
+    }
+
+    public boolean searchCompare(String searchFor) {
+        Map<String, List<String>> map = this.archives;
+
+        for (Map.Entry<String, List<String>> pair : map.entrySet()) {
+            if(searchFor.equals(pair.getKey().trim())){
+                System.out.println("ACHEI " + pair.getKey().trim() + searchFor);
+                return true;
+            }
+            for(int i = 0; i< pair.getValue().size(); i++){
+                if(searchFor.equals(pair.getValue().get(i).trim())){
+                    System.out.println("ACHEI " + pair.getValue().get(i) + searchFor);
+                    return true;
+                }
+            }
+        }
+        if(map.containsValue(searchFor) || map.containsKey(searchFor)){
+            return true;
+        }
+
+        return false;
     }
 
     public void tempReminder() {
@@ -105,17 +133,14 @@ public class Peer {
                     }).collect(Collectors.groupingBy(p -> p.getParent().getFileName().toString()))
                     .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, file -> file.getValue().stream().map(Path::getFileName).map(Path::toString).collect(Collectors.toList())));
 
+            this.archives = fileList;
             return fileList;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void startSender(int port1) throws Exception {
-
-        BufferedReader inFromUser = new BufferedReader(
-                new InputStreamReader(System.in));
-
+    public static void startSender(int portToSend, String sentence) throws Exception {
         DatagramSocket clientSocket = new DatagramSocket();
 
         String servidor = "localhost";
@@ -126,14 +151,12 @@ public class Peer {
         byte[] sendData = new byte[1024];
         byte[] receiveData = new byte[1024];
 
-        System.out.println("Digite o texto a ser enviado ao servidor: ");
-        String sentence = inFromUser.readLine();
         sendData = sentence.getBytes();
         DatagramPacket sendPacket = new DatagramPacket(sendData,
-                sendData.length, IPAddress, port1);
+                sendData.length, IPAddress, portToSend);
 
         System.out
-                .println("Enviando pacote UDP para " + servidor + ":" + port1);
+                .println("Enviando pacote UDP para " + servidor + ":" + portToSend);
         clientSocket.send(sendPacket);
 
         DatagramPacket receivePacket = new DatagramPacket(receiveData,
@@ -144,45 +167,28 @@ public class Peer {
 
         String modifiedSentence = new String(receivePacket.getData());
 
+        /*String modifiedSentence = "";
+
+        try {
+            //
+            modifiedSentence = CompletableFuture.supplyAsync(() ->  new String(receivePacket.getData()))
+                    .get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException  | TimeoutException e) {
+            System.out.println("Time out has occurred");
+        }*/
+
         System.out.println("Texto recebido do servidor:" + modifiedSentence);
         clientSocket.close();
         System.out.println("Socket cliente fechado!");
     }
 
 
-    public static void startPeer(int porta) throws Exception {
+    public void startPeer(int porta) throws Exception {
 
         DatagramSocket serverSocket = null;
         try {
             serverSocket = new DatagramSocket(porta);
-/*
-            File file = new File("/Users/karinedasilvasobrinho/Documents/sistemas_distribuidos/peer_to_peer_search/sockets.txt"); //initialize File object and passing path as argument
-            boolean result;
-            try {
-                File tempFile
-                        = File.createTempFile("Hello", ".tmp");
-                System.out.println(
-                        "Temporary file is located on Default location"
-                                + tempFile.getAbsolutePath());
 
-                System.out.println(
-                        "Temporary file is located on Specified location: "
-                                + tempFile.getAbsolutePath());
-
-
-            FileWriter fWriter = new FileWriter(
-                    tempFile.getAbsolutePath());
-
-                fWriter.write("text");
-
-                fWriter.close();
-
-                System.out.println(
-                        "File is created successfully with the content.");
-            } catch (IOException e) {
-                e.printStackTrace();    //prints exception if any
-            }
-*/
         } catch (SocketException e) {
             System.out.println("erro");
             throw new RuntimeException(e);
@@ -209,14 +215,18 @@ public class Peer {
 
             int port = receivePacket.getPort();
 
-            String capitalizedSentence = sentence.toUpperCase();
+            boolean var = searchCompare(sentence.trim());
 
-            sendData = capitalizedSentence.getBytes();
+            if(var){
+                sendData = "arquivo encontrado".getBytes();
+            } else {
+                sendData = "arquivo nao encontrado".getBytes();
+            }
 
             DatagramPacket sendPacket = new DatagramPacket(sendData,
                     sendData.length, IPAddress, port);
 
-            System.out.print("Enviando " + capitalizedSentence + "...");
+            System.out.print("Enviando " + sentence + "...");
 
             try {
                 serverSocket.send(sendPacket);
@@ -236,7 +246,7 @@ public class Peer {
 
                 String opcao = "";
 
-                while (!opcao.equals("LEAVE")) {
+                while (!opcao.equals("QUIT")) {
                     System.out.println("Selecione uma das opções abaixo:");
                     System.out.println("INICIALIZA");
                     System.out.println("SEARCH");
@@ -259,6 +269,8 @@ public class Peer {
 
                             newPeer = new Peer(address, file, address1, address2);
                             newPeer.add(newPeer);
+                            //newPeer.searchCompare("peer_to_peer_search");
+                            //newPeer.keyContainingValue("peer_to_peer_search");
 
                             break;
                         }
@@ -269,20 +281,16 @@ public class Peer {
                                 newPeer.getArc(searchArc);
 
 
-                                try {
+                                /*try {
                                     //System.out.println("Digite o IP:porta do peer que deseja enviar msg:");
                                     //String portSender = entrada.nextLine();
                                     startSender(newPeer.port1);
                                     //startSender(newPeer.port2);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
-                                }
+                                }*/
                             } else System.out.println("Nenhum Peer inicializado até o momento");
                             break;
-                        }
-                        case "LEAVE": {
-                            System.out.println("Obrigado.");
-                            System.exit(0);
                         }
                         default: {
                             System.out.println("Opção " + opcao + " inválida.");
